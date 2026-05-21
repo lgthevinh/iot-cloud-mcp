@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const InteractiveDeviceParamsSchema = z.object({
-  uuid: z.string().describe('Device UUID'),
+  deviceRef: z.string().describe('Device reference returned by list_devices'),
 });
 
 export type InteractiveDeviceParams = z.infer<typeof InteractiveDeviceParamsSchema>;
@@ -9,8 +9,7 @@ export type InteractiveDeviceParams = z.infer<typeof InteractiveDeviceParamsSche
 export const INTERACTIVE_DEVICE_TOOL = {
   name: 'interactive_device',
   description:
-    'IMPORTANT: Always call get_device_state (or get_device) first to read current state before issuing control commands. Controlling a device without knowing its current state may cause unintended behavior. ' +
-    'Open an interactive control panel widget for a device. ' +
+    'Open an interactive control panel widget for a device by deviceRef returned from list_devices. ' +
     'Use this when the user wants to control or manage a device without specifying exact actions ' +
     '(e.g. "control the light", "adjust the AC", "manage bedroom lamp"). ' +
     'Shows a visual UI with power toggle, brightness slider, temperature controls, mode selector, etc. ' +
@@ -19,18 +18,17 @@ export const INTERACTIVE_DEVICE_TOOL = {
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuid: {
+      deviceRef: {
         type: 'string',
-        description: 'Device UUID',
+        description: 'Device reference returned by list_devices',
       },
     },
-    required: ['uuid'],
+    required: ['deviceRef'],
   },
   metadata: {
     name: 'interactive_device',
     description:
-      'IMPORTANT: Always call get_device_state (or get_device) first to read current state before issuing control commands. Controlling a device without knowing its current state may cause unintended behavior. ' +
-      'Open an interactive control panel widget for a device. ' +
+      'Open an interactive control panel widget for a device by deviceRef returned from list_devices. ' +
       'Use when user wants to control a device without specifying exact actions. ' +
       'Shows visual UI with power, brightness, temperature, and mode controls.',
     readOnlyHint: true,

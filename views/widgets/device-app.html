@@ -1200,10 +1200,11 @@
             }
             if (msg.jsonrpc === '2.0' && msg.method) {
               var p = msg.params || {};
-              if (msg.method === 'ui/notifications/tool-result') {
-                var d =
-                  p.structuredContent ||
-                  (p.content && p.content[0] && p.content[0].text
+	              if (msg.method === 'ui/notifications/tool-result') {
+	                var d =
+	                  (p._meta && p._meta.widgetData) ||
+	                  p.structuredContent ||
+	                  (p.content && p.content[0] && p.content[0].text
                     ? (function () {
                         try {
                           return JSON.parse(p.content[0].text);
@@ -1270,16 +1271,18 @@
                 });
             },
 
-            callServerTool: function (name, args) {
-              if (!_connected && window.openai && typeof window.openai.callTool === 'function') {
-                return window.openai.callTool(name, args).then(function (r) {
-                  return r && r.structuredContent ? r.structuredContent : r;
-                });
-              }
-              return _send('tools/call', { name: name, arguments: args || {} }).then(function (r) {
-                return r && r.structuredContent ? r.structuredContent : r;
-              });
-            },
+	            callServerTool: function (name, args) {
+	              if (!_connected && window.openai && typeof window.openai.callTool === 'function') {
+	                return window.openai.callTool(name, args).then(function (r) {
+	                  if (r && r._meta && r._meta.widgetData) return r._meta.widgetData;
+	                  return r && r.structuredContent ? r.structuredContent : r;
+	                });
+	              }
+	              return _send('tools/call', { name: name, arguments: args || {} }).then(function (r) {
+	                if (r && r._meta && r._meta.widgetData) return r._meta.widgetData;
+	                return r && r.structuredContent ? r.structuredContent : r;
+	              });
+	            },
           };
         })();
         /* Timeout to show empty state if no data arrives within 8s */
@@ -1315,10 +1318,11 @@
         function goBack() {
           if (_history.length === 0) return;
           var prev = _history.pop();
-          if (prev.view === 'dashboard' && prev.data && prev.data.uuid) {
-            showNavLoading();
-            _bridge
-              .callServerTool('_widget_get_device', { uuid: prev.data.uuid })
+	          if (prev.view === 'dashboard' && prev.data && (prev.data.deviceRef || prev.data.ref)) {
+	            var prevRef = prev.data.deviceRef || prev.data.ref;
+	            showNavLoading();
+	            _bridge
+	              .callServerTool('_widget_get_device', { deviceRef: prevRef })
               .then(function (data) {
                 hideNavLoading();
                 renderView('dashboard', data);
@@ -1900,8 +1904,10 @@
               var d = pageDevices[i];
               var icon = getIcon(d.deviceType);
               var typeLabel = d.deviceType ? t('dt_' + d.deviceType) : '';
-              html +=
-                '<li class="ddw-item" data-action="get_device" data-uuid="' + esc(d.uuid) + '">';
+	              html +=
+	                '<li class="ddw-item" data-action="get_device" data-ref="' +
+	                esc(d.deviceRef || d.ref || '') +
+	                '">';
               html += '<div class="ddw-item-icon">' + esc(icon) + '</div>';
               html += '<div class="ddw-item-info">';
               html +=
@@ -1963,7 +1969,8 @@
           var groupLabel = data.groupLabel || null;
           var stateElements = parseState(data.state);
 
-          var uuid = data.uuid || null;
+	          var uuid = data.uuid || null;
+	          var deviceRef = data.deviceRef || data.ref || null;
           var brand = data.brand || null;
           var ownership = data.ownership || null;
           var mac = data.mac || null;
@@ -2088,11 +2095,11 @@
           html += '<div class="ddw-footer">';
           html += '<span class="ddw-footer-text">' + esc(t('footer')) + '</span>';
           html += partnerLogo2;
-          if (uuid) {
-            html +=
-              '<button class="ddw-control-btn" data-action="control_device" data-uuid="' +
-              esc(uuid) +
-              '">';
+	          if (deviceRef) {
+	            html +=
+	              '<button class="ddw-control-btn" data-action="control_device" data-ref="' +
+	              esc(deviceRef) +
+	              '">';
             html += '\uD83C\uDFAE ' + esc(t('control_device'));
             html += '</button>';
           }
@@ -2108,7 +2115,8 @@
             return;
           }
 
-          var uuid = data.uuid || '';
+	          var uuid = data.uuid || '';
+	          var deviceRef = data.deviceRef || data.ref || '';
           var icon = getIcon(data.deviceType);
           var label = data.label || t('unnamed_device');
           var desc = data.desc || '';
@@ -2213,8 +2221,8 @@
                   html +=
                     '<input type="checkbox" id="' +
                     chkId +
-                    '" data-uuid="' +
-                    esc(uuid) +
+	                    '" data-ref="' +
+	                    esc(deviceRef) +
                     '" data-el="' +
                     esc(elId) +
                     '" data-attr="power"' +
@@ -2243,8 +2251,8 @@
                     def.max +
                     '" value="' +
                     sv +
-                    '" data-uuid="' +
-                    esc(uuid) +
+	                    '" data-ref="' +
+	                    esc(deviceRef) +
                     '" data-el="' +
                     esc(elId) +
                     '" data-action="' +
@@ -2273,8 +2281,8 @@
                       (isActive ? ' active' : '') +
                       '"' +
                       (def.action
-                        ? ' data-uuid="' +
-                          esc(uuid) +
+	                        ? ' data-ref="' +
+	                          esc(deviceRef) +
                           '" data-el="' +
                           esc(elId) +
                           '" data-action="' +
@@ -2312,8 +2320,8 @@
                       ch.max +
                       '" value="' +
                       chVal +
-                      '" data-uuid="' +
-                      esc(uuid) +
+	                      '" data-ref="' +
+	                      esc(deviceRef) +
                       '" data-el="' +
                       esc(elId) +
                       '" data-hsv-group="' +
@@ -2386,10 +2394,24 @@
         }
 
         /* ── Control Action Handlers ───────────────────────── */
-        function sendControl(uuid, action, value, elementId, rowEl) {
-          if (rowEl) rowEl.classList.add('ddw-sending');
-          var args = { uuid: uuid, action: action, elementId: elementId };
-          if (value != null) args.value = value;
+	        function buildSimpleControlArgs(deviceRef, action, value, elementId) {
+	          var args = { deviceRef: deviceRef, elementId: elementId };
+	          if (action === 'power') args.power = value ? 'on' : 'off';
+	          else if (action === 'turn_on') args.power = 'on';
+	          else if (action === 'turn_off') args.power = 'off';
+	          else if (action === 'set_brightness') args.brightness = Math.round(Number(value) / 10);
+	          else if (action === 'set_kelvin') args.kelvin = Number(value);
+	          else if (action === 'set_temperature') args.temperature = Number(value);
+	          else if (action === 'set_mode') {
+	            var modes = ['AUTO', 'COOL', 'DRY', 'HEAT', 'FAN'];
+	            args.mode = modes[Number(value)] || 'AUTO';
+	          }
+	          return args;
+	        }
+
+	        function sendControl(deviceRef, action, value, elementId, rowEl) {
+	          if (rowEl) rowEl.classList.add('ddw-sending');
+	          var args = buildSimpleControlArgs(deviceRef, action, value, elementId);
 
           _bridge
             .callServerTool('control_device_simple', args)
@@ -2401,9 +2423,9 @@
             });
         }
 
-        function sendRawControl(uuid, elementId, command, rowEl) {
-          if (rowEl) rowEl.classList.add('ddw-sending');
-          var args = { uuid: uuid, elementIds: [elementId], command: command };
+	        function sendRawControl(deviceRef, elementId, command, rowEl) {
+	          if (rowEl) rowEl.classList.add('ddw-sending');
+	          var args = { deviceRef: deviceRef, elementIds: [elementId], command: command };
 
           _bridge
             .callServerTool('control_device', args)
@@ -2416,19 +2438,19 @@
         }
 
         var _sliderTimers = {};
-        function debouncedControl(key, uuid, action, value, elementId, rowEl) {
-          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
-          _sliderTimers[key] = setTimeout(function () {
-            sendControl(uuid, action, value, elementId, rowEl);
-          }, 300);
-        }
+	        function debouncedControl(key, deviceRef, action, value, elementId, rowEl) {
+	          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
+	          _sliderTimers[key] = setTimeout(function () {
+	            sendControl(deviceRef, action, value, elementId, rowEl);
+	          }, 300);
+	        }
 
-        function debouncedRawControl(key, uuid, elementId, command, rowEl) {
-          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
-          _sliderTimers[key] = setTimeout(function () {
-            sendRawControl(uuid, elementId, command, rowEl);
-          }, 300);
-        }
+	        function debouncedRawControl(key, deviceRef, elementId, command, rowEl) {
+	          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
+	          _sliderTimers[key] = setTimeout(function () {
+	            sendRawControl(deviceRef, elementId, command, rowEl);
+	          }, 300);
+	        }
 
         /* ── Event Delegation ──────────────────────────────── */
         root.addEventListener('click', function (e) {
@@ -2494,16 +2516,16 @@
           /* List Item -> Dashboard */
           var listItem = target.closest('.ddw-item');
           if (listItem && listItem.getAttribute('data-action') === 'get_device') {
-            var uuid = listItem.getAttribute('data-uuid');
-            if (uuid) callToolAndNavigate('_widget_get_device', { uuid: uuid }, 'dashboard');
+	            var ref = listItem.getAttribute('data-ref');
+	            if (ref) callToolAndNavigate('_widget_get_device', { deviceRef: ref }, 'dashboard');
             return;
           }
 
           /* Control Button -> Control View */
           var controlBtn = target.closest('.ddw-control-btn');
           if (controlBtn && controlBtn.getAttribute('data-action') === 'control_device') {
-            var cUuid = controlBtn.getAttribute('data-uuid');
-            if (cUuid) callToolAndNavigate('_widget_control_device', { uuid: cUuid }, 'control');
+	            var cRef = controlBtn.getAttribute('data-ref');
+	            if (cRef) callToolAndNavigate('_widget_control_device', { deviceRef: cRef }, 'control');
             return;
           }
 
@@ -2511,7 +2533,7 @@
           var segBtn = target.closest('.ddw-seg-btn');
           if (segBtn && segBtn.getAttribute('data-action')) {
             if (segBtn.closest('.ddw-seg--readonly')) return;
-            var sUuid = segBtn.getAttribute('data-uuid');
+	            var sRef = segBtn.getAttribute('data-ref');
             var sElId = Number(segBtn.getAttribute('data-el'));
             var sAction = segBtn.getAttribute('data-action');
             var sVal = Number(segBtn.getAttribute('data-value'));
@@ -2521,7 +2543,7 @@
             for (var si = 0; si < siblings.length; si++) siblings[si].classList.remove('active');
             segBtn.classList.add('active');
 
-            sendControl(sUuid, sAction, sVal, sElId, sRow);
+	            sendControl(sRef, sAction, sVal, sElId, sRow);
             return;
           }
         });
@@ -2530,18 +2552,18 @@
           var target = e.target;
           /* Toggle Control */
           if (target.type === 'checkbox' && target.getAttribute('data-attr') === 'power') {
-            var uuid = target.getAttribute('data-uuid');
+	            var ref2 = target.getAttribute('data-ref');
             var elId = Number(target.getAttribute('data-el'));
             var isOn = target.checked;
             var row = target.closest('.ddw-attr-row');
             var lbl = row && row.querySelector('.ddw-toggle-label');
             if (lbl) lbl.textContent = t(isOn ? 'on' : 'off');
-            sendControl(uuid, isOn ? 'turn_on' : 'turn_off', null, elId, row);
+	            sendControl(ref2, isOn ? 'turn_on' : 'turn_off', null, elId, row);
           }
 
           /* Slider Control */
           if (target.type === 'range' && target.getAttribute('data-action')) {
-            var uuid2 = target.getAttribute('data-uuid');
+	            var ref3 = target.getAttribute('data-ref');
             var elId2 = Number(target.getAttribute('data-el'));
             var action = target.getAttribute('data-action');
             var val = Number(target.value);
@@ -2551,13 +2573,13 @@
             if (valEl) valEl.textContent = (scale !== 1 ? Math.round(val * scale) : val) + unit;
             setSliderFill(target);
             var row2 = target.closest('.ddw-attr-row');
-            debouncedControl(target.id, uuid2, action, val, elId2, row2);
+	            debouncedControl(target.id, ref3, action, val, elId2, row2);
           }
 
           /* HSV Control */
           if (target.type === 'range' && target.getAttribute('data-hsv-group')) {
             var hsvGroup = target.getAttribute('data-hsv-group');
-            var uuid4 = target.getAttribute('data-uuid');
+	            var ref4 = target.getAttribute('data-ref');
             var elId4 = Number(target.getAttribute('data-el'));
             var hSlider = document.getElementById(hsvGroup + '-hsv_hue');
             var sSlider = document.getElementById(hsvGroup + '-hsv_saturation');
@@ -2567,7 +2589,7 @@
             var vVal = vSlider ? Number(vSlider.value) : 0;
             updateHsvGroupVisuals(hsvGroup);
             var row4 = target.closest('.ddw-attr-row');
-            debouncedRawControl(hsvGroup, uuid4, elId4, [31, hVal, sVal, vVal], row4);
+	            debouncedRawControl(hsvGroup, ref4, elId4, [31, hVal, sVal, vVal], row4);
           }
         });
 

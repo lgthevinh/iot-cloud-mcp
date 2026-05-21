@@ -1,6 +1,6 @@
 /**
  * get_device Tool Definition
- * Get a specific device by UUID
+ * Get a specific device by reference
  */
 
 import { z } from 'zod';
@@ -9,7 +9,7 @@ import { z } from 'zod';
  * get_device tool parameters
  */
 const GetDeviceParamsSchema = z.object({
-  uuid: z.string().describe('Device UUID'),
+  deviceRef: z.string().describe('Device reference returned by list_devices'),
 });
 
 /** Type for get_device parameters */
@@ -23,21 +23,21 @@ export type GetDeviceParams = z.infer<typeof GetDeviceParamsSchema>;
 export const GET_DEVICE_TOOL = {
   name: 'get_device',
   description:
-    'Get a specific device by UUID. Returns detailed device information including label, description, location, group, and control parameters.',
+    'Get a specific device by deviceRef returned from list_devices. Returns detailed device information including label, description, location, group, and control parameters.',
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuid: {
+      deviceRef: {
         type: 'string',
-        description: 'Device UUID',
+        description: 'Device reference returned by list_devices',
       },
     },
-    required: ['uuid'],
+    required: ['deviceRef'],
   },
   metadata: {
     name: 'get_device',
     description:
-      'Get a specific device by UUID. Returns detailed device information including label, description, location, group, and control parameters.',
+      'Get a specific device by deviceRef returned from list_devices. Returns detailed device information including label, description, location, group, and control parameters.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {

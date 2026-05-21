@@ -1,6 +1,6 @@
 /**
  * control_device Tool Definition
- * Simplified tool for controlling IoT devices
+ * Raw tool for controlling IoT devices
  */
 
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import { z } from 'zod';
  * Other details (e.g., endpoint, partnerId, rootUuid) are fetched automatically.
  */
 const ControlDeviceParamsSchema = z.object({
-  uuid: z.string().describe('Device UUID to control'),
+  deviceRef: z.string().describe('Device reference returned by list_devices'),
   elementIds: z.array(z.number()).describe('Array of element IDs to control (e.g., [1, 2, 3])'),
   command: z.array(z.number()).describe('Array of commands to send to the elements (e.g., [1, 0])'),
 });
@@ -23,14 +23,14 @@ export type ControlDeviceParams = z.infer<typeof ControlDeviceParamsSchema>;
 /**
  * control_device MCP Tool Definition
  *
- * This tool allows you to control IoT devices by specifying the device UUID,
+ * This tool allows you to control IoT devices by specifying the deviceRef,
  * the elements to control, and the commands to send. Other required fields
- * are fetched automatically based on the device UUID.
+ * are fetched automatically based on the deviceRef.
  *
  * Example:
  * ```json
  * {
- *   "uuid": "6989563f05252e68f5879eae",
+ *   "deviceRef": "bedroom-light",
  *   "elementIds": [1, 2],
  *   "command": [1, 0]
  * }
@@ -42,13 +42,13 @@ export const CONTROL_DEVICE_TOOL = {
   name: 'control_device',
   description:
     'IMPORTANT: Always call get_device_state (or get_device) first to read current state before issuing control commands. Controlling a device without knowing its current state may cause unintended behavior. ' +
-    'Control IoT devices by UUID, element IDs, and commands. Elements are physical parts (e.g., 4-button switch has 4 elements). Command format: [attrId, value]. Common attrs: 1=ON_OFF (0/1), 28=BRIGHTNESS (0-1000), 29=KELVIN, 20=TEMP_SET (15-30°C), 17=MODE. See device-attributes resource for full reference.',
+    'Control IoT devices by deviceRef, element IDs, and commands. Elements are physical parts (e.g., 4-button switch has 4 elements). Command format: [attrId, value]. Common attrs: 1=ON_OFF (0/1), 28=BRIGHTNESS (0-1000), 29=KELVIN, 20=TEMP_SET (15-30°C), 17=MODE. See device-attributes resource for full reference.',
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuid: {
+      deviceRef: {
         type: 'string',
-        description: 'Device UUID to control',
+        description: 'Device reference returned by list_devices',
       },
       elementIds: {
         type: 'array',
@@ -61,17 +61,17 @@ export const CONTROL_DEVICE_TOOL = {
         description: 'Array of commands to send to the elements (e.g., [1, 0])',
       },
     },
-    required: ['uuid', 'elementIds', 'command'],
+    required: ['deviceRef', 'elementIds', 'command'],
   },
   metadata: {
     name: 'control_device',
     description:
       'IMPORTANT: Always call get_device_state (or get_device) first to read current state before issuing control commands. Controlling a device without knowing its current state may cause unintended behavior. ' +
-      'Control IoT devices by UUID, element IDs, and commands. Elements are physical parts (e.g., 4-button switch has 4 elements). Command format: [attrId, value]. Common attrs: 1=ON_OFF (0/1), 28=BRIGHTNESS (0-1000), 29=KELVIN, 20=TEMP_SET (15-30°C), 17=MODE. See device-attributes resource for full reference.',
+      'Control IoT devices by deviceRef, element IDs, and commands. Elements are physical parts (e.g., 4-button switch has 4 elements). Command format: [attrId, value]. Common attrs: 1=ON_OFF (0/1), 28=BRIGHTNESS (0-1000), 29=KELVIN, 20=TEMP_SET (15-30°C), 17=MODE. See device-attributes resource for full reference.',
     examples: [
       {
         input: {
-          uuid: '6989563f05252e68f5879eae',
+          deviceRef: 'bedroom-light',
           elementIds: [1, 2],
           command: [1, 0],
         },

@@ -27,7 +27,7 @@ export type ListDevicesParams = z.infer<typeof ListDevicesParamsSchema>;
 export const LIST_DEVICES_TOOL = {
   name: 'list_devices',
   description:
-    'Get devices with compact pagination. Optionally filter by location using locationId. Defaults to limit=20, offset=0 to keep responses small for edge models.',
+    'Get devices with compact pagination. Returns short deviceRef values for later control_device_simple calls. Optionally filter by location using locationId. Defaults to limit=20, offset=0 to keep responses small for edge models.',
   inputSchema: {
     type: 'object' as const,
     properties: {
@@ -42,7 +42,7 @@ export const LIST_DEVICES_TOOL = {
   metadata: {
     name: 'list_devices',
     description:
-      'Get devices with compact pagination. Optionally filter by location using locationId. Defaults to limit=20, offset=0 to keep responses small for edge models.',
+      'Get devices with compact pagination. Returns short deviceRef values for later control_device_simple calls. Optionally filter by location using locationId. Defaults to limit=20, offset=0 to keep responses small for edge models.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {

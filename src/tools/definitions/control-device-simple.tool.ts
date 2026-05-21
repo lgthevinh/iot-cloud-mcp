@@ -8,7 +8,7 @@ const HsvSchema = z.object({
 });
 
 const ControlDeviceSimpleParamsSchema = z.object({
-  uuid: z.string().describe('Device UUID'),
+  deviceRef: z.string().describe('Device reference returned by list_devices, e.g. "bedroom-light"'),
   power: z.enum(['on', 'off']).optional().describe('"on" or "off"'),
   brightness: z.number().min(0).max(100).optional().describe('Brightness 0-100 (%)'),
   kelvin: z.number().min(0).max(65000).optional().describe('Color temperature 0-65000 (K)'),
@@ -25,12 +25,11 @@ const ControlDeviceSimpleParamsSchema = z.object({
 });
 
 export type ControlDeviceSimpleParams = z.infer<typeof ControlDeviceSimpleParamsSchema> &
-  ControlAttrs & { uuid: string; elementId?: number };
+  ControlAttrs & { deviceRef: string; elementId?: number };
 
 const DESCRIPTION =
-  'IMPORTANT: Always call get_device_state first to read current state. ' +
-  'Only set attributes that appear in the state output — those are the ones this device supports. ' +
-  'Pass the same key names and value format as the state output. ' +
+  'Control a device by deviceRef returned from list_devices. ' +
+  'Pass simple human-readable attributes: power, brightness, kelvin, temperature, mode, or color. ' +
   'Only pass attributes you want to change. Async via MQTT — wait 2-3s then re-check state.';
 
 export const CONTROL_DEVICE_SIMPLE_TOOL = {
@@ -39,7 +38,10 @@ export const CONTROL_DEVICE_SIMPLE_TOOL = {
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuid: { type: 'string', description: 'Device UUID' },
+      deviceRef: {
+        type: 'string',
+        description: 'Device reference returned by list_devices, e.g. "bedroom-light"',
+      },
       power: { type: 'string', enum: ['on', 'off'], description: '"on" or "off"' },
       brightness: { type: 'number', minimum: 0, maximum: 100, description: 'Brightness 0-100 (%)' },
       kelvin: {
@@ -74,7 +76,7 @@ export const CONTROL_DEVICE_SIMPLE_TOOL = {
         description: 'Specific element ID to control. Omit to control all elements.',
       },
     },
-    required: ['uuid'],
+    required: ['deviceRef'],
   },
   metadata: {
     name: 'control_device_simple',

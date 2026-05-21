@@ -14,7 +14,7 @@
 import { z } from 'zod';
 
 const WidgetControlDeviceParamsSchema = z.object({
-  uuid: z.string().describe('Device UUID'),
+  deviceRef: z.string().describe('Device reference returned by list_devices'),
 });
 
 export type WidgetControlDeviceParams = z.infer<typeof WidgetControlDeviceParamsSchema>;
@@ -26,12 +26,12 @@ export const WIDGET_CONTROL_DEVICE_TOOL = {
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuid: {
+      deviceRef: {
         type: 'string',
-        description: 'Device UUID',
+        description: 'Device reference returned by list_devices',
       },
     },
-    required: ['uuid'],
+    required: ['deviceRef'],
   },
   metadata: {
     name: '_widget_control_device',

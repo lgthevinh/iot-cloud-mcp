@@ -8,11 +8,11 @@ const HsvSchema = z.object({
 });
 
 const ControlDevicesBulkParamsSchema = z.object({
-  uuids: z
+  deviceRefs: z
     .array(z.string())
     .min(1)
     .max(50)
-    .describe('Device UUIDs to control (1-50). Typically obtained from a prior list_devices call.'),
+    .describe('Device references to control (1-50). Obtain them from a prior list_devices call.'),
   power: z.enum(['on', 'off']).optional().describe('"on" or "off"'),
   brightness: z.number().min(0).max(100).optional().describe('Brightness 0-100 (%)'),
   kelvin: z.number().min(0).max(65000).optional().describe('Color temperature 0-65000 (K)'),
@@ -31,11 +31,11 @@ const ControlDevicesBulkParamsSchema = z.object({
 });
 
 export type ControlDevicesBulkParams = z.infer<typeof ControlDevicesBulkParamsSchema> &
-  ControlAttrs & { uuids: string[]; elementId?: number };
+  ControlAttrs & { deviceRefs: string[]; elementId?: number };
 
 const DESCRIPTION =
   'Apply the SAME control settings to multiple devices in one call (e.g. "turn off all lights", "set all ACs to 26°C"). ' +
-  'You must already have the UUIDs — typically from a prior list_devices call; the AI is responsible for selecting which devices to target. ' +
+  'You must already have the deviceRefs — typically from a prior list_devices call; the AI is responsible for selecting which devices to target. ' +
   'Pass only the attributes you want to change — each device silently ignores attributes it does not support. ' +
   'Devices are controlled in parallel (concurrency 10) and partial failures are reported per-device, so one offline device will not block the others. ' +
   'Returns { total, succeeded, failed, results[] } so you can tell the user exactly which devices succeeded or failed. ' +
@@ -47,13 +47,13 @@ export const CONTROL_DEVICES_BULK_TOOL = {
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuids: {
+      deviceRefs: {
         type: 'array',
         items: { type: 'string' },
         minItems: 1,
         maxItems: 50,
         description:
-          'Device UUIDs to control (1-50). Typically obtained from a prior list_devices call.',
+          'Device references to control (1-50). Obtain them from a prior list_devices call.',
       },
       power: { type: 'string', enum: ['on', 'off'], description: '"on" or "off"' },
       brightness: { type: 'number', minimum: 0, maximum: 100, description: 'Brightness 0-100 (%)' },
@@ -90,7 +90,7 @@ export const CONTROL_DEVICES_BULK_TOOL = {
           'Optional element ID applied uniformly to ALL targeted devices. Omit to control all elements on each device.',
       },
     },
-    required: ['uuids'],
+    required: ['deviceRefs'],
   },
   metadata: {
     name: 'control_devices_bulk',

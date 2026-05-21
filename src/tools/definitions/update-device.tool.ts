@@ -9,7 +9,7 @@ import { z } from 'zod';
  * update_device tool parameters
  */
 const UpdateDeviceParamsSchema = z.object({
-  uuid: z.string().describe('Device UUID'),
+  deviceRef: z.string().describe('Device reference returned by list_devices'),
   label: z.string().nullish().describe('Optional new label for the device'),
   desc: z.string().nullish().describe('Optional new description for the device'),
   locationId: z.string().nullish().describe('Optional new location UUID to move the device'),
@@ -31,9 +31,9 @@ export const UPDATE_DEVICE_TOOL = {
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuid: {
+      deviceRef: {
         type: 'string',
-        description: 'Device UUID',
+        description: 'Device reference returned by list_devices',
       },
       label: {
         type: ['string', 'null'],
@@ -52,7 +52,7 @@ export const UPDATE_DEVICE_TOOL = {
         description: 'Optional new group UUID to assign the device',
       },
     },
-    required: ['uuid'],
+    required: ['deviceRef'],
   },
   metadata: {
     name: 'update_device',

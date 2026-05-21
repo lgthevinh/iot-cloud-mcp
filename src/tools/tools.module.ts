@@ -4,10 +4,11 @@ import { CommonModule } from '../common/common.module';
 import { SchedulerModule } from '../scheduler/scheduler.module';
 import { ToolRegistryService } from './services/tool-registry.service';
 import { ToolExecutorService } from './services/tool-executor.service';
+import { DeviceReferenceService } from './services/device-reference.service';
 
 @Module({
   imports: [ProxyModule, CommonModule, forwardRef(() => SchedulerModule)],
-  providers: [ToolRegistryService, ToolExecutorService],
-  exports: [ToolRegistryService, ToolExecutorService],
+  providers: [ToolRegistryService, ToolExecutorService, DeviceReferenceService],
+  exports: [ToolRegistryService, ToolExecutorService, DeviceReferenceService],
 })
 export class ToolsModule {}

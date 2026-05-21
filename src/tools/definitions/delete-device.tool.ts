@@ -9,7 +9,7 @@ import { z } from 'zod';
  * delete_device tool parameters
  */
 const DeleteDeviceParamsSchema = z.object({
-  uuid: z.string().describe('Device UUID to delete'),
+  deviceRef: z.string().describe('Device reference returned by list_devices'),
 });
 
 /** Type for delete_device parameters */
@@ -27,12 +27,12 @@ export const DELETE_DEVICE_TOOL = {
   inputSchema: {
     type: 'object' as const,
     properties: {
-      uuid: {
+      deviceRef: {
         type: 'string',
-        description: 'Device UUID to delete',
+        description: 'Device reference returned by list_devices',
       },
     },
-    required: ['uuid'],
+    required: ['deviceRef'],
   },
   metadata: {
     name: 'delete_device',
