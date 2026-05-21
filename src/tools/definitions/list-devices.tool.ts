@@ -17,6 +17,7 @@ const ListDevicesParamsSchema = PaginationParamsSchema.extend({
     .string()
     .nullish()
     .describe('Optional location reference to filter devices by location'),
+  groupRef: z.string().nullish().describe('Optional group reference to filter devices by group'),
 });
 
 /** Type for list_devices parameters */
@@ -30,13 +31,17 @@ export type ListDevicesParams = z.infer<typeof ListDevicesParamsSchema>;
 export const LIST_DEVICES_TOOL = {
   name: 'list_devices',
   description:
-    'Get devices with compact pagination. Returns short deviceRef values for later device calls. Optionally filter by location using locationRef from list_locations. Defaults to limit=20, offset=0 to keep responses small for edge models.',
+    'Get devices with compact pagination. Returns short deviceRef values for later device calls. Optionally filter by locationRef from list_locations or groupRef from list_groups. Defaults to limit=20, offset=0 to keep responses small for edge models.',
   inputSchema: {
     type: 'object' as const,
     properties: {
       locationRef: {
         type: ['string', 'null'],
         description: 'Optional location reference to filter devices by location',
+      },
+      groupRef: {
+        type: ['string', 'null'],
+        description: 'Optional group reference to filter devices by group',
       },
       ...PAGINATION_INPUT_SCHEMA_PROPERTIES,
     },
@@ -45,7 +50,7 @@ export const LIST_DEVICES_TOOL = {
   metadata: {
     name: 'list_devices',
     description:
-      'Get devices with compact pagination. Returns short deviceRef values for later device calls. Optionally filter by location using locationRef from list_locations. Defaults to limit=20, offset=0 to keep responses small for edge models.',
+      'Get devices with compact pagination. Returns short deviceRef values for later device calls. Optionally filter by locationRef from list_locations or groupRef from list_groups. Defaults to limit=20, offset=0 to keep responses small for edge models.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {

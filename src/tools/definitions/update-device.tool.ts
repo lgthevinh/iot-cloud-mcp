@@ -13,7 +13,7 @@ const UpdateDeviceParamsSchema = z.object({
   label: z.string().nullish().describe('Optional new label for the device'),
   desc: z.string().nullish().describe('Optional new description for the device'),
   locationRef: z.string().nullish().describe('Optional new location reference to move the device'),
-  groupId: z.string().nullish().describe('Optional new group UUID to assign the device'),
+  groupRef: z.string().nullish().describe('Optional new group reference to assign the device'),
 });
 
 /** Type for update_device parameters */
@@ -47,9 +47,9 @@ export const UPDATE_DEVICE_TOOL = {
         type: ['string', 'null'],
         description: 'Optional new location reference to move the device',
       },
-      groupId: {
+      groupRef: {
         type: ['string', 'null'],
-        description: 'Optional new group UUID to assign the device',
+        description: 'Optional new group reference to assign the device',
       },
     },
     required: ['deviceRef'],

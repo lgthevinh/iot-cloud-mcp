@@ -6,6 +6,7 @@ import { ToolRegistryService } from './services/tool-registry.service';
 import { ToolExecutorService } from './services/tool-executor.service';
 import { DeviceReferenceService } from './services/device-reference.service';
 import { LocationReferenceService } from './services/location-reference.service';
+import { GroupReferenceService } from './services/group-reference.service';
 
 @Module({
   imports: [ProxyModule, CommonModule, forwardRef(() => SchedulerModule)],
@@ -14,12 +15,14 @@ import { LocationReferenceService } from './services/location-reference.service'
     ToolExecutorService,
     DeviceReferenceService,
     LocationReferenceService,
+    GroupReferenceService,
   ],
   exports: [
     ToolRegistryService,
     ToolExecutorService,
     DeviceReferenceService,
     LocationReferenceService,
+    GroupReferenceService,
   ],
 })
 export class ToolsModule {}

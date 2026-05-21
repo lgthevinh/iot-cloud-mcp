@@ -1200,11 +1200,11 @@
             }
             if (msg.jsonrpc === '2.0' && msg.method) {
               var p = msg.params || {};
-	              if (msg.method === 'ui/notifications/tool-result') {
-	                var d =
-	                  (p._meta && p._meta.widgetData) ||
-	                  p.structuredContent ||
-	                  (p.content && p.content[0] && p.content[0].text
+              if (msg.method === 'ui/notifications/tool-result') {
+                var d =
+                  (p._meta && p._meta.widgetData) ||
+                  p.structuredContent ||
+                  (p.content && p.content[0] && p.content[0].text
                     ? (function () {
                         try {
                           return JSON.parse(p.content[0].text);
@@ -1271,18 +1271,18 @@
                 });
             },
 
-	            callServerTool: function (name, args) {
-	              if (!_connected && window.openai && typeof window.openai.callTool === 'function') {
-	                return window.openai.callTool(name, args).then(function (r) {
-	                  if (r && r._meta && r._meta.widgetData) return r._meta.widgetData;
-	                  return r && r.structuredContent ? r.structuredContent : r;
-	                });
-	              }
-	              return _send('tools/call', { name: name, arguments: args || {} }).then(function (r) {
-	                if (r && r._meta && r._meta.widgetData) return r._meta.widgetData;
-	                return r && r.structuredContent ? r.structuredContent : r;
-	              });
-	            },
+            callServerTool: function (name, args) {
+              if (!_connected && window.openai && typeof window.openai.callTool === 'function') {
+                return window.openai.callTool(name, args).then(function (r) {
+                  if (r && r._meta && r._meta.widgetData) return r._meta.widgetData;
+                  return r && r.structuredContent ? r.structuredContent : r;
+                });
+              }
+              return _send('tools/call', { name: name, arguments: args || {} }).then(function (r) {
+                if (r && r._meta && r._meta.widgetData) return r._meta.widgetData;
+                return r && r.structuredContent ? r.structuredContent : r;
+              });
+            },
           };
         })();
         /* Timeout to show empty state if no data arrives within 8s */
@@ -1318,11 +1318,11 @@
         function goBack() {
           if (_history.length === 0) return;
           var prev = _history.pop();
-	          if (prev.view === 'dashboard' && prev.data && (prev.data.deviceRef || prev.data.ref)) {
-	            var prevRef = prev.data.deviceRef || prev.data.ref;
-	            showNavLoading();
-	            _bridge
-	              .callServerTool('_widget_get_device', { deviceRef: prevRef })
+          if (prev.view === 'dashboard' && prev.data && (prev.data.deviceRef || prev.data.ref)) {
+            var prevRef = prev.data.deviceRef || prev.data.ref;
+            showNavLoading();
+            _bridge
+              .callServerTool('_widget_get_device', { deviceRef: prevRef })
               .then(function (data) {
                 hideNavLoading();
                 renderView('dashboard', data);
@@ -1355,10 +1355,10 @@
                 hideNavLoading();
                 renderView(prev.view, prev.data);
               });
-          } else if (prev.view === 'group' && prev.data && prev.data.groupId) {
+          } else if (prev.view === 'group' && prev.data && prev.data.groupRef) {
             showNavLoading();
             _bridge
-              .callServerTool('_widget_list_devices', { groupId: prev.data.groupId })
+              .callServerTool('_widget_list_devices', { groupRef: prev.data.groupRef })
               .then(function (data) {
                 hideNavLoading();
                 renderView('group', data);
@@ -1904,10 +1904,10 @@
               var d = pageDevices[i];
               var icon = getIcon(d.deviceType);
               var typeLabel = d.deviceType ? t('dt_' + d.deviceType) : '';
-	              html +=
-	                '<li class="ddw-item" data-action="get_device" data-ref="' +
-	                esc(d.deviceRef || d.ref || '') +
-	                '">';
+              html +=
+                '<li class="ddw-item" data-action="get_device" data-ref="' +
+                esc(d.deviceRef || d.ref || '') +
+                '">';
               html += '<div class="ddw-item-icon">' + esc(icon) + '</div>';
               html += '<div class="ddw-item-info">';
               html +=
@@ -1978,6 +1978,7 @@
           var productId = data.productId || null;
           var locationId = data.locationId || null;
           var groupId = data.groupId || null;
+          var groupRef = data.groupRef || null;
           var eid = data.eid != null ? data.eid : null;
           var endpoint = data.endpoint || null;
           var elementIds = data.elementIds || [];
@@ -2015,6 +2016,8 @@
               html +=
                 '<button class="ddw-info-item ddw-info-item--clickable" data-action="goto_group" data-group-id="' +
                 esc(groupId) +
+                '" data-group-ref="' +
+                esc(groupRef || '') +
                 '"><div class="ddw-info-label">\uD83D\uDCC1 ' +
                 esc(t('group')) +
                 '</div><div class="ddw-info-value">' +
@@ -2098,11 +2101,11 @@
           html += '<div class="ddw-footer">';
           html += '<span class="ddw-footer-text">' + esc(t('footer')) + '</span>';
           html += partnerLogo2;
-	          if (deviceRef) {
-	            html +=
-	              '<button class="ddw-control-btn" data-action="control_device" data-ref="' +
-	              esc(deviceRef) +
-	              '">';
+          if (deviceRef) {
+            html +=
+              '<button class="ddw-control-btn" data-action="control_device" data-ref="' +
+              esc(deviceRef) +
+              '">';
             html += '\uD83C\uDFAE ' + esc(t('control_device'));
             html += '</button>';
           }
@@ -2118,8 +2121,8 @@
             return;
           }
 
-	          var uuid = data.uuid || '';
-	          var deviceRef = data.deviceRef || data.ref || '';
+          var uuid = data.uuid || '';
+          var deviceRef = data.deviceRef || data.ref || '';
           var icon = getIcon(data.deviceType);
           var label = data.label || t('unnamed_device');
           var desc = data.desc || '';
@@ -2134,6 +2137,7 @@
           var productId = data.productId || null;
           var locationId = data.locationId || null;
           var groupId = data.groupId || null;
+          var groupRef = data.groupRef || null;
           var eid = data.eid != null ? data.eid : null;
           var endpoint = data.endpoint || null;
           var elementIds = data.elementIds || [];
@@ -2171,6 +2175,8 @@
               html +=
                 '<button class="ddw-info-item ddw-info-item--clickable" data-action="goto_group" data-group-id="' +
                 esc(groupId) +
+                '" data-group-ref="' +
+                esc(groupRef || '') +
                 '"><div class="ddw-info-label">\uD83D\uDCC1 ' +
                 esc(t('group')) +
                 '</div><div class="ddw-info-value">' +
@@ -2227,8 +2233,8 @@
                   html +=
                     '<input type="checkbox" id="' +
                     chkId +
-	                    '" data-ref="' +
-	                    esc(deviceRef) +
+                    '" data-ref="' +
+                    esc(deviceRef) +
                     '" data-el="' +
                     esc(elId) +
                     '" data-attr="power"' +
@@ -2257,8 +2263,8 @@
                     def.max +
                     '" value="' +
                     sv +
-	                    '" data-ref="' +
-	                    esc(deviceRef) +
+                    '" data-ref="' +
+                    esc(deviceRef) +
                     '" data-el="' +
                     esc(elId) +
                     '" data-action="' +
@@ -2287,8 +2293,8 @@
                       (isActive ? ' active' : '') +
                       '"' +
                       (def.action
-	                        ? ' data-ref="' +
-	                          esc(deviceRef) +
+                        ? ' data-ref="' +
+                          esc(deviceRef) +
                           '" data-el="' +
                           esc(elId) +
                           '" data-action="' +
@@ -2326,8 +2332,8 @@
                       ch.max +
                       '" value="' +
                       chVal +
-	                      '" data-ref="' +
-	                      esc(deviceRef) +
+                      '" data-ref="' +
+                      esc(deviceRef) +
                       '" data-el="' +
                       esc(elId) +
                       '" data-hsv-group="' +
@@ -2400,24 +2406,24 @@
         }
 
         /* ── Control Action Handlers ───────────────────────── */
-	        function buildSimpleControlArgs(deviceRef, action, value, elementId) {
-	          var args = { deviceRef: deviceRef, elementId: elementId };
-	          if (action === 'power') args.power = value ? 'on' : 'off';
-	          else if (action === 'turn_on') args.power = 'on';
-	          else if (action === 'turn_off') args.power = 'off';
-	          else if (action === 'set_brightness') args.brightness = Math.round(Number(value) / 10);
-	          else if (action === 'set_kelvin') args.kelvin = Number(value);
-	          else if (action === 'set_temperature') args.temperature = Number(value);
-	          else if (action === 'set_mode') {
-	            var modes = ['AUTO', 'COOL', 'DRY', 'HEAT', 'FAN'];
-	            args.mode = modes[Number(value)] || 'AUTO';
-	          }
-	          return args;
-	        }
+        function buildSimpleControlArgs(deviceRef, action, value, elementId) {
+          var args = { deviceRef: deviceRef, elementId: elementId };
+          if (action === 'power') args.power = value ? 'on' : 'off';
+          else if (action === 'turn_on') args.power = 'on';
+          else if (action === 'turn_off') args.power = 'off';
+          else if (action === 'set_brightness') args.brightness = Math.round(Number(value) / 10);
+          else if (action === 'set_kelvin') args.kelvin = Number(value);
+          else if (action === 'set_temperature') args.temperature = Number(value);
+          else if (action === 'set_mode') {
+            var modes = ['AUTO', 'COOL', 'DRY', 'HEAT', 'FAN'];
+            args.mode = modes[Number(value)] || 'AUTO';
+          }
+          return args;
+        }
 
-	        function sendControl(deviceRef, action, value, elementId, rowEl) {
-	          if (rowEl) rowEl.classList.add('ddw-sending');
-	          var args = buildSimpleControlArgs(deviceRef, action, value, elementId);
+        function sendControl(deviceRef, action, value, elementId, rowEl) {
+          if (rowEl) rowEl.classList.add('ddw-sending');
+          var args = buildSimpleControlArgs(deviceRef, action, value, elementId);
 
           _bridge
             .callServerTool('control_device_simple', args)
@@ -2429,9 +2435,9 @@
             });
         }
 
-	        function sendRawControl(deviceRef, elementId, command, rowEl) {
-	          if (rowEl) rowEl.classList.add('ddw-sending');
-	          var args = { deviceRef: deviceRef, elementIds: [elementId], command: command };
+        function sendRawControl(deviceRef, elementId, command, rowEl) {
+          if (rowEl) rowEl.classList.add('ddw-sending');
+          var args = { deviceRef: deviceRef, elementIds: [elementId], command: command };
 
           _bridge
             .callServerTool('control_device', args)
@@ -2444,19 +2450,19 @@
         }
 
         var _sliderTimers = {};
-	        function debouncedControl(key, deviceRef, action, value, elementId, rowEl) {
-	          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
-	          _sliderTimers[key] = setTimeout(function () {
-	            sendControl(deviceRef, action, value, elementId, rowEl);
-	          }, 300);
-	        }
+        function debouncedControl(key, deviceRef, action, value, elementId, rowEl) {
+          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
+          _sliderTimers[key] = setTimeout(function () {
+            sendControl(deviceRef, action, value, elementId, rowEl);
+          }, 300);
+        }
 
-	        function debouncedRawControl(key, deviceRef, elementId, command, rowEl) {
-	          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
-	          _sliderTimers[key] = setTimeout(function () {
-	            sendRawControl(deviceRef, elementId, command, rowEl);
-	          }, 300);
-	        }
+        function debouncedRawControl(key, deviceRef, elementId, command, rowEl) {
+          if (_sliderTimers[key]) clearTimeout(_sliderTimers[key]);
+          _sliderTimers[key] = setTimeout(function () {
+            sendRawControl(deviceRef, elementId, command, rowEl);
+          }, 300);
+        }
 
         /* ── Event Delegation ──────────────────────────────── */
         root.addEventListener('click', function (e) {
@@ -2513,8 +2519,9 @@
               if (locRef)
                 callToolAndNavigate('_widget_list_devices', { locationRef: locRef }, 'location');
             } else if (infoAction === 'goto_group') {
-              var grpId = infoBtn.getAttribute('data-group-id');
-              if (grpId) callToolAndNavigate('_widget_list_devices', { groupId: grpId }, 'group');
+              var grpRef = infoBtn.getAttribute('data-group-ref');
+              if (grpRef)
+                callToolAndNavigate('_widget_list_devices', { groupRef: grpRef }, 'group');
             }
             return;
           }
@@ -2522,16 +2529,16 @@
           /* List Item -> Dashboard */
           var listItem = target.closest('.ddw-item');
           if (listItem && listItem.getAttribute('data-action') === 'get_device') {
-	            var ref = listItem.getAttribute('data-ref');
-	            if (ref) callToolAndNavigate('_widget_get_device', { deviceRef: ref }, 'dashboard');
+            var ref = listItem.getAttribute('data-ref');
+            if (ref) callToolAndNavigate('_widget_get_device', { deviceRef: ref }, 'dashboard');
             return;
           }
 
           /* Control Button -> Control View */
           var controlBtn = target.closest('.ddw-control-btn');
           if (controlBtn && controlBtn.getAttribute('data-action') === 'control_device') {
-	            var cRef = controlBtn.getAttribute('data-ref');
-	            if (cRef) callToolAndNavigate('_widget_control_device', { deviceRef: cRef }, 'control');
+            var cRef = controlBtn.getAttribute('data-ref');
+            if (cRef) callToolAndNavigate('_widget_control_device', { deviceRef: cRef }, 'control');
             return;
           }
 
@@ -2539,7 +2546,7 @@
           var segBtn = target.closest('.ddw-seg-btn');
           if (segBtn && segBtn.getAttribute('data-action')) {
             if (segBtn.closest('.ddw-seg--readonly')) return;
-	            var sRef = segBtn.getAttribute('data-ref');
+            var sRef = segBtn.getAttribute('data-ref');
             var sElId = Number(segBtn.getAttribute('data-el'));
             var sAction = segBtn.getAttribute('data-action');
             var sVal = Number(segBtn.getAttribute('data-value'));
@@ -2549,7 +2556,7 @@
             for (var si = 0; si < siblings.length; si++) siblings[si].classList.remove('active');
             segBtn.classList.add('active');
 
-	            sendControl(sRef, sAction, sVal, sElId, sRow);
+            sendControl(sRef, sAction, sVal, sElId, sRow);
             return;
           }
         });
@@ -2558,18 +2565,18 @@
           var target = e.target;
           /* Toggle Control */
           if (target.type === 'checkbox' && target.getAttribute('data-attr') === 'power') {
-	            var ref2 = target.getAttribute('data-ref');
+            var ref2 = target.getAttribute('data-ref');
             var elId = Number(target.getAttribute('data-el'));
             var isOn = target.checked;
             var row = target.closest('.ddw-attr-row');
             var lbl = row && row.querySelector('.ddw-toggle-label');
             if (lbl) lbl.textContent = t(isOn ? 'on' : 'off');
-	            sendControl(ref2, isOn ? 'turn_on' : 'turn_off', null, elId, row);
+            sendControl(ref2, isOn ? 'turn_on' : 'turn_off', null, elId, row);
           }
 
           /* Slider Control */
           if (target.type === 'range' && target.getAttribute('data-action')) {
-	            var ref3 = target.getAttribute('data-ref');
+            var ref3 = target.getAttribute('data-ref');
             var elId2 = Number(target.getAttribute('data-el'));
             var action = target.getAttribute('data-action');
             var val = Number(target.value);
@@ -2579,13 +2586,13 @@
             if (valEl) valEl.textContent = (scale !== 1 ? Math.round(val * scale) : val) + unit;
             setSliderFill(target);
             var row2 = target.closest('.ddw-attr-row');
-	            debouncedControl(target.id, ref3, action, val, elId2, row2);
+            debouncedControl(target.id, ref3, action, val, elId2, row2);
           }
 
           /* HSV Control */
           if (target.type === 'range' && target.getAttribute('data-hsv-group')) {
             var hsvGroup = target.getAttribute('data-hsv-group');
-	            var ref4 = target.getAttribute('data-ref');
+            var ref4 = target.getAttribute('data-ref');
             var elId4 = Number(target.getAttribute('data-el'));
             var hSlider = document.getElementById(hsvGroup + '-hsv_hue');
             var sSlider = document.getElementById(hsvGroup + '-hsv_saturation');
@@ -2595,7 +2602,7 @@
             var vVal = vSlider ? Number(vSlider.value) : 0;
             updateHsvGroupVisuals(hsvGroup);
             var row4 = target.closest('.ddw-attr-row');
-	            debouncedRawControl(hsvGroup, ref4, elId4, [31, hVal, sVal, vVal], row4);
+            debouncedRawControl(hsvGroup, ref4, elId4, [31, hVal, sVal, vVal], row4);
           }
         });
 

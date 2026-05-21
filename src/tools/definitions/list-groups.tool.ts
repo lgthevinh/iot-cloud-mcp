@@ -30,7 +30,7 @@ export type ListGroupsParams = z.infer<typeof ListGroupsParamsSchema>;
 export const LIST_GROUPS_TOOL = {
   name: 'list_groups',
   description:
-    'Get groups with compact pagination. Optionally filter by location using locationRef from list_locations. Defaults to limit=20, offset=0.',
+    'Get groups with compact pagination. Returns short groupRef values for later group-scoped calls. Optionally filter by locationRef from list_locations. Defaults to limit=20, offset=0.',
   inputSchema: {
     type: 'object' as const,
     properties: {
@@ -45,7 +45,7 @@ export const LIST_GROUPS_TOOL = {
   metadata: {
     name: 'list_groups',
     description:
-      'Get groups with compact pagination. Optionally filter by location using locationRef from list_locations. Defaults to limit=20, offset=0.',
+      'Get groups with compact pagination. Returns short groupRef values for later group-scoped calls. Optionally filter by locationRef from list_locations. Defaults to limit=20, offset=0.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {
