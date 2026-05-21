@@ -9,3 +9,4 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
 export const MCP_SESSION_PREFIX = 'mcp:session:';
 export const MCP_PROJECT_SESSIONS_PREFIX = 'mcp:project-sessions:';
 export const MCP_DEVICE_REF_PREFIX = 'mcp:device-ref:';
+export const MCP_LOCATION_REF_PREFIX = 'mcp:location-ref:';

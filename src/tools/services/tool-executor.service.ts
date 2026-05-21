@@ -12,6 +12,7 @@ import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { IotApiService } from '../../proxy/services/iot-api.service';
 import { SchedulerService } from '../../scheduler/scheduler.service';
 import { DeviceReferenceService } from './device-reference.service';
+import { LocationReferenceService } from './location-reference.service';
 import { decodeJwt, extractBearerToken, getUserIdFromToken } from '../../common/utils/jwt.utils';
 import { decodeProductId, resolveDeviceType } from '../../common/utils/product.utils';
 import { FETCH_USER_TOOL, FetchUserParams } from '../definitions/fetch-user.tool';
@@ -94,6 +95,11 @@ interface DeviceLookupParams {
   deviceRef?: string;
 }
 
+interface LocationLookupParams {
+  locationId?: string | null;
+  locationRef?: string | null;
+}
+
 /** Thrown when authorization header is missing */
 class AuthRequiredError extends Error {
   constructor() {
@@ -110,6 +116,7 @@ export class ToolExecutorService {
   constructor(
     private iotApiService: IotApiService,
     private deviceReferenceService: DeviceReferenceService,
+    private locationReferenceService: LocationReferenceService,
     @Inject(forwardRef(() => SchedulerService))
     private schedulerService: SchedulerService,
   ) {}
@@ -172,14 +179,6 @@ export class ToolExecutorService {
     return { userId, projectApiKey: context.projectApiKey || 'unknown' };
   }
 
-  /** Validate authorization header exists, return projectApiKey. No userId extraction. */
-  private requireAuthHeader(context: ToolContext): string {
-    if (!context.authorization) {
-      throw new AuthRequiredError();
-    }
-    return context.projectApiKey || 'unknown';
-  }
-
   /** Wrap data as successful MCP CallToolResult */
   private successResult(data: unknown): CallToolResult {
     return {
@@ -231,6 +230,46 @@ export class ToolExecutorService {
     throw new BadRequestException('deviceRef is required.');
   }
 
+  private async resolveLocationUuid(
+    projectApiKey: string,
+    userId: string,
+    locationRef: string,
+  ): Promise<string> {
+    return this.locationReferenceService.resolveLocationUuid(
+      projectApiKey,
+      userId,
+      locationRef,
+      () => this.iotApiService.listLocations(projectApiKey, userId),
+    );
+  }
+
+  private async resolveLocationUuidFromParams(
+    projectApiKey: string,
+    userId: string,
+    params: LocationLookupParams,
+  ): Promise<string | undefined> {
+    if (params.locationId) {
+      return params.locationId;
+    }
+    if (params.locationRef) {
+      return this.resolveLocationUuid(projectApiKey, userId, params.locationRef);
+    }
+    return undefined;
+  }
+
+  private async getLocationRefByUuid(
+    projectApiKey: string,
+    userId: string,
+  ): Promise<Map<string, string>> {
+    const locations = await this.iotApiService.listLocations(projectApiKey, userId);
+    const assignments = await this.locationReferenceService.assignAndStore(
+      projectApiKey,
+      userId,
+      locations,
+    );
+    return new Map(assignments.map(({ location, ref }) => [location.uuid, ref]));
+  }
+
   private paginateItems<T>(
     items: T[],
     limitParam?: number | null,
@@ -258,6 +297,8 @@ export class ToolExecutorService {
       includeFeatures?: boolean;
       includeUuid?: boolean;
       ref?: string;
+      locationRef?: string | null;
+      includeLocationId?: boolean;
     },
   ) {
     const typeInfo = resolveDeviceType(device);
@@ -268,7 +309,8 @@ export class ToolExecutorService {
       label: device.label,
       ...(options?.includeDesc ? { desc: device.desc } : {}),
       ...(options?.includeMac ? { mac: device.mac } : {}),
-      locationId: device.locationId,
+      ...(options?.includeLocationId !== false ? { locationId: device.locationId } : {}),
+      ...(options?.locationRef ? { locationRef: options.locationRef } : {}),
       groupId: device.groupId,
       ...(options?.includeFeatures ? { features: device.features } : {}),
       ...(typeInfo && { deviceType: typeInfo.deviceType, deviceTypeId: typeInfo.deviceTypeId }),
@@ -341,6 +383,14 @@ export class ToolExecutorService {
         userId,
         devices,
       );
+      const locationsWithRefs = await this.locationReferenceService.assignAndStore(
+        projectApiKey,
+        userId,
+        locations,
+      );
+      const locationRefByUuid = new Map(
+        locationsWithRefs.map(({ location, ref }) => [location.uuid, ref]),
+      );
 
       const tokens = params.query.toLowerCase().split(/\s+/).filter(Boolean);
       const scoreText = (text: string) =>
@@ -355,16 +405,33 @@ export class ToolExecutorService {
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score)
         .map(({ device, ref }) =>
-          this.buildSlimDeviceSummary(device, { includeDesc: true, includeUuid: false, ref }),
+          this.buildSlimDeviceSummary(device, {
+            includeDesc: true,
+            includeUuid: false,
+            includeLocationId: false,
+            ref,
+            locationRef: locationRefByUuid.get(device.locationId),
+          }),
         );
 
-      const matchedLocations = locations
-        .filter((l) => scoreText(l.label ?? '') + scoreText(l.desc ?? '') > 0)
-        .map((l) => ({ uuid: l.uuid, label: l.label, desc: l.desc }));
+      const matchedLocations = locationsWithRefs
+        .filter(
+          ({ location }) => scoreText(location.label ?? '') + scoreText(location.desc ?? '') > 0,
+        )
+        .map(({ location, ref }) => ({
+          locationRef: ref,
+          label: location.label,
+          desc: location.desc,
+        }));
 
       const matchedGroups = groups
         .filter((g) => scoreText(g.label ?? '') + scoreText(g.desc ?? '') > 0)
-        .map((g) => ({ uuid: g.uuid, label: g.label, desc: g.desc, locationId: g.locationId }));
+        .map((g) => ({
+          uuid: g.uuid,
+          label: g.label,
+          desc: g.desc,
+          locationRef: locationRefByUuid.get(g.locationId),
+        }));
 
       const pagedDevices = this.paginateItems(matchedDevices, params.limit, params.offset);
       const pagedLocations = this.paginateItems(matchedLocations, params.limit, params.offset);
@@ -381,6 +448,7 @@ export class ToolExecutorService {
             return {
               deviceRef: ref,
               label: device.label,
+              locationRef: locationRefByUuid.get(device.locationId),
               ...(typeInfo && { deviceType: typeInfo.deviceType }),
             };
           }),
@@ -437,9 +505,11 @@ export class ToolExecutorService {
           resource = await this.iotApiService.getDevice(projectApiKey, userId, uuid);
           break;
         }
-        case 'location':
-          resource = await this.iotApiService.getLocation(projectApiKey, userId, id);
+        case 'location': {
+          const locationUuid = await this.resolveLocationUuid(projectApiKey, userId, id);
+          resource = await this.iotApiService.getLocation(projectApiKey, userId, locationUuid);
           break;
+        }
         case 'group':
           resource = await this.iotApiService.getGroup(projectApiKey, userId, id);
           break;
@@ -464,21 +534,25 @@ export class ToolExecutorService {
       const { userId, projectApiKey } = this.extractUserContext(context);
 
       const allDevices = await this.iotApiService.listDevices(projectApiKey, userId);
+      const locationRefByUuid = await this.getLocationRefByUuid(projectApiKey, userId);
+      const locationUuid = await this.resolveLocationUuidFromParams(projectApiKey, userId, params);
       const devicesWithRefs = await this.deviceReferenceService.assignAndStore(
         projectApiKey,
         userId,
         allDevices,
       );
 
-      const filteredDevices = params.locationId
-        ? devicesWithRefs.filter(({ device }) => device.locationId === params.locationId)
+      const filteredDevices = locationUuid
+        ? devicesWithRefs.filter(({ device }) => device.locationId === locationUuid)
         : devicesWithRefs;
 
       const slimDevices = filteredDevices.map(({ device, ref }) =>
         this.buildSlimDeviceSummary(device, {
           includeDesc: true,
           includeUuid: false,
+          includeLocationId: false,
           ref,
+          locationRef: locationRefByUuid.get(device.locationId),
         }),
       );
       const pagedDevices = this.paginateItems(slimDevices, params.limit, params.offset);
@@ -497,6 +571,7 @@ export class ToolExecutorService {
         this.buildSlimDeviceSummary(device, {
           includeDesc: true,
           ref,
+          locationRef: locationRefByUuid.get(device.locationId),
         }),
       );
       const pagedWidgetDevices = this.paginateItems(widgetDevices, params.limit, params.offset);
@@ -526,10 +601,15 @@ export class ToolExecutorService {
       const { userId, projectApiKey } = this.extractUserContext(context);
 
       const locations = await this.iotApiService.listLocations(projectApiKey, userId);
-      const slimLocations = locations.map((loc) => ({
-        uuid: loc.uuid,
-        label: loc.label,
-        desc: loc.desc,
+      const locationsWithRefs = await this.locationReferenceService.assignAndStore(
+        projectApiKey,
+        userId,
+        locations,
+      );
+      const slimLocations = locationsWithRefs.map(({ location, ref }) => ({
+        locationRef: ref,
+        label: location.label,
+        desc: location.desc,
       }));
 
       const pagedLocations = this.paginateItems(slimLocations, params.limit, params.offset);
@@ -555,16 +635,14 @@ export class ToolExecutorService {
     try {
       const { userId, projectApiKey } = this.extractUserContext(context);
 
-      const groups = await this.iotApiService.listGroups(
-        projectApiKey,
-        userId,
-        params.locationId ?? undefined,
-      );
+      const locationRefByUuid = await this.getLocationRefByUuid(projectApiKey, userId);
+      const locationUuid = await this.resolveLocationUuidFromParams(projectApiKey, userId, params);
+      const groups = await this.iotApiService.listGroups(projectApiKey, userId, locationUuid);
       const slimGroups = groups.map((group) => ({
         uuid: group.uuid,
         label: group.label,
         desc: group.desc,
-        locationId: group.locationId,
+        locationRef: locationRefByUuid.get(group.locationId),
       }));
 
       const pagedGroups = this.paginateItems(slimGroups, params.limit, params.offset);
@@ -608,6 +686,7 @@ export class ToolExecutorService {
 
       const typeInfo = resolveDeviceType(device);
       const productDecoded = device.productId ? decodeProductId(device.productId) : null;
+      const locationRefByUuid = await this.getLocationRefByUuid(projectApiKey, userId);
 
       // Normalize state to flat element→attribute map { "1": { "1": [1,1] }, ... }
       // The getDeviceState API may return wrapped: { state: {...}, mac, devId, ... }
@@ -616,6 +695,7 @@ export class ToolExecutorService {
       const enrichedDevice = {
         deviceRef: params.deviceRef,
         ...device,
+        locationRef: locationRefByUuid.get(device.locationId) ?? null,
         ...(typeInfo && { deviceType: typeInfo.deviceType, deviceTypeId: typeInfo.deviceTypeId }),
         ...(productDecoded && { brand: productDecoded.brand, ownership: productDecoded.ownership }),
         locationLabel: location?.label ?? null,
@@ -641,9 +721,12 @@ export class ToolExecutorService {
     try {
       const { userId, projectApiKey } = this.extractUserContext(context);
 
-      const { deviceRef, ...rawUpdates } = params;
+      const { deviceRef, locationRef, ...rawUpdates } = params;
       // Coerce null → undefined so downstream proxy types are satisfied
       const updates = Object.fromEntries(Object.entries(rawUpdates).filter(([, v]) => v !== null));
+      if (locationRef) {
+        updates.locationId = await this.resolveLocationUuid(projectApiKey, userId, locationRef);
+      }
 
       const uuid = await this.resolveDeviceUuid(projectApiKey, userId, deviceRef);
       const result = await this.iotApiService.updateDevice(projectApiKey, userId, uuid, updates);
@@ -691,8 +774,13 @@ export class ToolExecutorService {
     context: ToolContext,
   ): Promise<CallToolResult> {
     try {
-      const projectApiKey = this.requireAuthHeader(context);
-      const state = await this.iotApiService.getLocationState(projectApiKey, params.locationUuid);
+      const { userId, projectApiKey } = this.extractUserContext(context);
+      const locationUuid = await this.resolveLocationUuid(
+        projectApiKey,
+        userId,
+        params.locationRef,
+      );
+      const state = await this.iotApiService.getLocationState(projectApiKey, locationUuid);
 
       const slimState = Array.isArray(state)
         ? state.map((entry) => {
@@ -719,10 +807,15 @@ export class ToolExecutorService {
     context: ToolContext,
   ): Promise<CallToolResult> {
     try {
-      const projectApiKey = this.requireAuthHeader(context);
+      const { userId, projectApiKey } = this.extractUserContext(context);
+      const locationUuid = await this.resolveLocationUuid(
+        projectApiKey,
+        userId,
+        params.locationRef,
+      );
       const state = await this.iotApiService.getDeviceStateByMac(
         projectApiKey,
-        params.locationUuid,
+        locationUuid,
         params.macAddress,
       );
       const stateMap = extractStateMap(state);
@@ -910,11 +1003,13 @@ export class ToolExecutorService {
       const typeInfo = resolveDeviceType(device);
       const productDecoded = device.productId ? decodeProductId(device.productId) : null;
       const stateMap = extractStateMap(state);
+      const locationRefByUuid = await this.getLocationRefByUuid(projectApiKey, userId);
 
       const enrichedDevice = {
         _view: 'dashboard',
         ...(params.deviceRef && { deviceRef: params.deviceRef }),
         ...device,
+        locationRef: locationRefByUuid.get(device.locationId) ?? null,
         ...(typeInfo && { deviceType: typeInfo.deviceType, deviceTypeId: typeInfo.deviceTypeId }),
         ...(productDecoded && { brand: productDecoded.brand, ownership: productDecoded.ownership }),
         locationLabel: location?.label ?? null,
@@ -961,11 +1056,13 @@ export class ToolExecutorService {
       const typeInfo = resolveDeviceType(device);
       const productDecoded = device.productId ? decodeProductId(device.productId) : null;
       const stateMap = extractStateMap(state);
+      const locationRefByUuid = await this.getLocationRefByUuid(projectApiKey, userId);
 
       const enrichedDevice = {
         _view: 'control',
         ...(params.deviceRef && { deviceRef: params.deviceRef }),
         ...device,
+        locationRef: locationRefByUuid.get(device.locationId) ?? null,
         ...(typeInfo && { deviceType: typeInfo.deviceType, deviceTypeId: typeInfo.deviceTypeId }),
         ...(productDecoded && { brand: productDecoded.brand, ownership: productDecoded.ownership }),
         locationLabel: location?.label ?? null,
@@ -995,6 +1092,8 @@ export class ToolExecutorService {
       const { userId, projectApiKey } = this.extractUserContext(context);
 
       const allDevices = await this.iotApiService.listDevices(projectApiKey, userId);
+      const locationRefByUuid = await this.getLocationRefByUuid(projectApiKey, userId);
+      const locationUuid = await this.resolveLocationUuidFromParams(projectApiKey, userId, params);
       const devicesWithRefs = await this.deviceReferenceService.assignAndStore(
         projectApiKey,
         userId,
@@ -1003,7 +1102,7 @@ export class ToolExecutorService {
 
       // Filter by groupId client-side (API doesn't support groupId query param)
       const devices = devicesWithRefs.filter(({ device }) => {
-        if (params.locationId && device.locationId !== params.locationId) {
+        if (locationUuid && device.locationId !== locationUuid) {
           return false;
         }
         if (params.groupId && device.groupId !== params.groupId) {
@@ -1018,15 +1117,16 @@ export class ToolExecutorService {
           includeMac: true,
           includeFeatures: true,
           ref,
+          locationRef: locationRefByUuid.get(device.locationId),
         }),
       );
       const pagedDevices = this.paginateItems(slimDevices, params.limit, params.offset);
 
       // Resolve context labels in parallel when a filter is active
       const [locationLabel, groupLabel] = await Promise.all([
-        params.locationId
+        locationUuid
           ? this.iotApiService
-              .getLocation(projectApiKey, userId, params.locationId)
+              .getLocation(projectApiKey, userId, locationUuid)
               .then((l) => l.label ?? null)
               .catch(() => null)
           : Promise.resolve(null),
@@ -1038,7 +1138,7 @@ export class ToolExecutorService {
           : Promise.resolve(null),
       ]);
 
-      const _view = params.locationId ? 'location' : params.groupId ? 'group' : 'list';
+      const _view = locationUuid ? 'location' : params.groupId ? 'group' : 'list';
 
       const result = {
         _view,
@@ -1048,7 +1148,8 @@ export class ToolExecutorService {
         limit: pagedDevices.limit,
         offset: pagedDevices.offset,
         devices: pagedDevices.items,
-        ...(params.locationId && { locationId: params.locationId, locationLabel }),
+        ...(params.locationRef && { locationRef: params.locationRef, locationLabel }),
+        ...(locationUuid && { locationId: locationUuid }),
         ...(params.groupId && { groupId: params.groupId, groupLabel }),
       };
 

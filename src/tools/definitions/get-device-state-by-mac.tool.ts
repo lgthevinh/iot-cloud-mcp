@@ -9,7 +9,7 @@ import { z } from 'zod';
  * get_device_state_by_mac tool parameters
  */
 const GetDeviceStateByMacParamsSchema = z.object({
-  locationUuid: z.string().describe('Location UUID'),
+  locationRef: z.string().describe('Location reference returned by list_locations'),
   macAddress: z.string().describe('Device MAC address'),
 });
 
@@ -24,25 +24,25 @@ export type GetDeviceStateByMacParams = z.infer<typeof GetDeviceStateByMacParams
 export const GET_DEVICE_STATE_BY_MAC_TOOL = {
   name: 'get_device_state_by_mac',
   description:
-    'Get device state by MAC address within a location. Returns human-readable state like get_device_state: { macAddress, power, mode, temperature, brightness, kelvin, ... }. Multi-element devices return { macAddress, elementCount, elements }. Useful when you have the MAC address but not the device UUID.',
+    'Get device state by MAC address within a locationRef returned from list_locations. Returns human-readable state like get_device_state: { macAddress, power, mode, temperature, brightness, kelvin, ... }. Multi-element devices return { macAddress, elementCount, elements }.',
   inputSchema: {
     type: 'object' as const,
     properties: {
-      locationUuid: {
+      locationRef: {
         type: 'string',
-        description: 'Location UUID',
+        description: 'Location reference returned by list_locations',
       },
       macAddress: {
         type: 'string',
         description: 'Device MAC address',
       },
     },
-    required: ['locationUuid', 'macAddress'],
+    required: ['locationRef', 'macAddress'],
   },
   metadata: {
     name: 'get_device_state_by_mac',
     description:
-      'Get device state by MAC address within a location. Returns human-readable state like get_device_state: { macAddress, power, mode, temperature, brightness, kelvin, ... }. Multi-element devices return { macAddress, elementCount, elements }. Useful when you have the MAC address but not the device UUID.',
+      'Get device state by MAC address within a locationRef returned from list_locations. Returns human-readable state like get_device_state: { macAddress, power, mode, temperature, brightness, kelvin, ... }. Multi-element devices return { macAddress, elementCount, elements }.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {

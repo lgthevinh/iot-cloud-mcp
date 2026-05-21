@@ -25,7 +25,7 @@ export type ListLocationsParams = z.infer<typeof ListLocationsParamsSchema>;
 export const LIST_LOCATIONS_TOOL = {
   name: 'list_locations',
   description:
-    'Get locations for the authenticated user with compact pagination. Defaults to limit=20, offset=0.',
+    'Get locations for the authenticated user with compact pagination. Returns short locationRef values for later location-scoped calls. Defaults to limit=20, offset=0.',
   inputSchema: {
     type: 'object' as const,
     properties: {
@@ -36,7 +36,7 @@ export const LIST_LOCATIONS_TOOL = {
   metadata: {
     name: 'list_locations',
     description:
-      'Get locations for the authenticated user with compact pagination. Defaults to limit=20, offset=0.',
+      'Get locations for the authenticated user with compact pagination. Returns short locationRef values for later location-scoped calls. Defaults to limit=20, offset=0.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {

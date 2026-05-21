@@ -18,7 +18,10 @@ import {
 } from './pagination-params.tool';
 
 const WidgetListDevicesParamsSchema = PaginationParamsSchema.extend({
-  locationId: z.string().nullish().describe('Optional location ID to filter devices by location'),
+  locationRef: z
+    .string()
+    .nullish()
+    .describe('Optional location reference to filter devices by location'),
   groupId: z.string().nullish().describe('Optional group ID to filter devices by group'),
 });
 
@@ -42,9 +45,9 @@ export const WIDGET_LIST_DEVICES_TOOL = {
   inputSchema: {
     type: 'object' as const,
     properties: {
-      locationId: {
+      locationRef: {
         type: ['string', 'null'],
-        description: 'Optional location ID to filter devices by location',
+        description: 'Optional location reference to filter devices by location',
       },
       groupId: {
         type: ['string', 'null'],

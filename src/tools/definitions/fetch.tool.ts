@@ -13,7 +13,7 @@ const FetchParamsSchema = z.object({
   id: z
     .string()
     .describe(
-      'Resource ID in format "type:id". For devices use "device:<deviceRef>" from list_devices; locations and groups still use their UUIDs.',
+      'Resource ID in format "type:id". Use "device:<deviceRef>" from list_devices, "location:<locationRef>" from list_locations, or "group:<groupUuid>".',
     ),
 });
 
@@ -29,14 +29,14 @@ export type FetchParams = z.infer<typeof FetchParamsSchema>;
 export const FETCH_TOOL = {
   name: 'fetch',
   description:
-    'Retrieve complete details by ID. For devices use "device:<deviceRef>" from list_devices; locations and groups use UUIDs.',
+    'Retrieve complete details by ID. For devices use "device:<deviceRef>"; for locations use "location:<locationRef>"; groups still use UUIDs.',
   inputSchema: {
     type: 'object' as const,
     properties: {
       id: {
         type: 'string',
         description:
-          'Resource ID in format "type:id". For devices use "device:<deviceRef>" from list_devices; locations and groups still use their UUIDs.',
+          'Resource ID in format "type:id". Use "device:<deviceRef>", "location:<locationRef>", or "group:<groupUuid>".',
       },
     },
     required: ['id'],
@@ -44,7 +44,7 @@ export const FETCH_TOOL = {
   metadata: {
     name: 'fetch',
     description:
-      'Retrieve complete details by ID. For devices use "device:<deviceRef>" from list_devices; locations and groups use UUIDs.',
+      'Retrieve complete details by ID. For devices use "device:<deviceRef>"; for locations use "location:<locationRef>"; groups still use UUIDs.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {

@@ -1343,10 +1343,10 @@
                 hideNavLoading();
                 renderView(prev.view, prev.data);
               });
-          } else if (prev.view === 'location' && prev.data && prev.data.locationId) {
+          } else if (prev.view === 'location' && prev.data && prev.data.locationRef) {
             showNavLoading();
             _bridge
-              .callServerTool('_widget_list_devices', { locationId: prev.data.locationId })
+              .callServerTool('_widget_list_devices', { locationRef: prev.data.locationRef })
               .then(function (data) {
                 hideNavLoading();
                 renderView('location', data);
@@ -1969,8 +1969,9 @@
           var groupLabel = data.groupLabel || null;
           var stateElements = parseState(data.state);
 
-	          var uuid = data.uuid || null;
-	          var deviceRef = data.deviceRef || data.ref || null;
+          var uuid = data.uuid || null;
+          var deviceRef = data.deviceRef || data.ref || null;
+          var locationRef = data.locationRef || null;
           var brand = data.brand || null;
           var ownership = data.ownership || null;
           var mac = data.mac || null;
@@ -2002,6 +2003,8 @@
               html +=
                 '<button class="ddw-info-item ddw-info-item--clickable" data-action="goto_location" data-location-id="' +
                 esc(locationId) +
+                '" data-location-ref="' +
+                esc(locationRef || '') +
                 '"><div class="ddw-info-label">\uD83D\uDCCD ' +
                 esc(t('location')) +
                 '</div><div class="ddw-info-value">' +
@@ -2123,6 +2126,7 @@
           var deviceType = data.deviceType || null;
           var locationLabel = data.locationLabel || null;
           var groupLabel = data.groupLabel || null;
+          var locationRef = data.locationRef || null;
 
           var brand = data.brand || null;
           var ownership = data.ownership || null;
@@ -2155,6 +2159,8 @@
               html +=
                 '<button class="ddw-info-item ddw-info-item--clickable" data-action="goto_location" data-location-id="' +
                 esc(locationId) +
+                '" data-location-ref="' +
+                esc(locationRef || '') +
                 '"><div class="ddw-info-label">\uD83D\uDCCD ' +
                 esc(t('location')) +
                 '</div><div class="ddw-info-value">' +
@@ -2503,9 +2509,9 @@
           if (infoBtn) {
             var infoAction = infoBtn.getAttribute('data-action');
             if (infoAction === 'goto_location') {
-              var locId = infoBtn.getAttribute('data-location-id');
-              if (locId)
-                callToolAndNavigate('_widget_list_devices', { locationId: locId }, 'location');
+              var locRef = infoBtn.getAttribute('data-location-ref');
+              if (locRef)
+                callToolAndNavigate('_widget_list_devices', { locationRef: locRef }, 'location');
             } else if (infoAction === 'goto_group') {
               var grpId = infoBtn.getAttribute('data-group-id');
               if (grpId) callToolAndNavigate('_widget_list_devices', { groupId: grpId }, 'group');

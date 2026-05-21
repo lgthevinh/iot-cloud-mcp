@@ -13,7 +13,10 @@ import {
  * list_devices tool parameters
  */
 const ListDevicesParamsSchema = PaginationParamsSchema.extend({
-  locationId: z.string().nullish().describe('Optional location ID to filter devices by location'),
+  locationRef: z
+    .string()
+    .nullish()
+    .describe('Optional location reference to filter devices by location'),
 });
 
 /** Type for list_devices parameters */
@@ -27,13 +30,13 @@ export type ListDevicesParams = z.infer<typeof ListDevicesParamsSchema>;
 export const LIST_DEVICES_TOOL = {
   name: 'list_devices',
   description:
-    'Get devices with compact pagination. Returns short deviceRef values for later control_device_simple calls. Optionally filter by location using locationId. Defaults to limit=20, offset=0 to keep responses small for edge models.',
+    'Get devices with compact pagination. Returns short deviceRef values for later device calls. Optionally filter by location using locationRef from list_locations. Defaults to limit=20, offset=0 to keep responses small for edge models.',
   inputSchema: {
     type: 'object' as const,
     properties: {
-      locationId: {
+      locationRef: {
         type: ['string', 'null'],
-        description: 'Optional location ID to filter devices by location',
+        description: 'Optional location reference to filter devices by location',
       },
       ...PAGINATION_INPUT_SCHEMA_PROPERTIES,
     },
@@ -42,7 +45,7 @@ export const LIST_DEVICES_TOOL = {
   metadata: {
     name: 'list_devices',
     description:
-      'Get devices with compact pagination. Returns short deviceRef values for later control_device_simple calls. Optionally filter by location using locationId. Defaults to limit=20, offset=0 to keep responses small for edge models.',
+      'Get devices with compact pagination. Returns short deviceRef values for later device calls. Optionally filter by location using locationRef from list_locations. Defaults to limit=20, offset=0 to keep responses small for edge models.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {

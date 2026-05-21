@@ -9,7 +9,7 @@ import { z } from 'zod';
  * get_location_state tool parameters
  */
 const GetLocationStateParamsSchema = z.object({
-  locationUuid: z.string().describe('Location UUID'),
+  locationRef: z.string().describe('Location reference returned by list_locations'),
 });
 
 /** Type for get_location_state parameters */
@@ -23,21 +23,21 @@ export type GetLocationStateParams = z.infer<typeof GetLocationStateParamsSchema
 export const GET_LOCATION_STATE_TOOL = {
   name: 'get_location_state',
   description:
-    'Get the current state of all devices in a location. Returns state for all devices within the specified location.',
+    'Get the current state of all devices in a location by locationRef returned from list_locations.',
   inputSchema: {
     type: 'object' as const,
     properties: {
-      locationUuid: {
+      locationRef: {
         type: 'string',
-        description: 'Location UUID',
+        description: 'Location reference returned by list_locations',
       },
     },
-    required: ['locationUuid'],
+    required: ['locationRef'],
   },
   metadata: {
     name: 'get_location_state',
     description:
-      'Get the current state of all devices in a location. Returns state for all devices within the specified location.',
+      'Get the current state of all devices in a location by locationRef returned from list_locations.',
     readOnlyHint: true,
     securitySchemes: {
       oauth2: {
